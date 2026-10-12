@@ -1,0 +1,19 @@
+
+[
+  {
+    "defect_id": "D001",
+    "policy_id": "P1001",
+    "field": "sum_assured",
+    "original_value": 500000,
+    "altered_value": 400000,
+    "description": "Sum assured reduced by 100000 for the experiment"
+  },
+  {
+    "defect_id": "D002",
+    "policy_id": "P1002",
+    "field": "sum_assured",
+    "original_value": 300000,
+    "altered_value": 100000,
+    "description": "Sum assured reduced by 200000 for the experiment"
+  }
+]
