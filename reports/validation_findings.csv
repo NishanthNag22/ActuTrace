@@ -1,0 +1,11 @@
+﻿row_number,policy_id,field,rule,severity,message
+5,P1004,date_of_birth,MISSING_REQUIRED_VALUE,high,Required field 'date_of_birth' is missing.
+6,P1005,sum_assured,NEGATIVE_VALUE,high,Field 'sum_assured' cannot be negative.
+8,P1007,annual_premium,NEGATIVE_VALUE,high,Field 'annual_premium' cannot be negative.
+9,P1008,policy_status,INVALID_POLICY_STATUS,medium,Unsupported policy status: unknown.
+13,P1012,date_of_birth,FUTURE_DATE_OF_BIRTH,high,Date of birth cannot be in the future.
+13,P1012,policy_start_date,START_BEFORE_BIRTH,high,Policy start date precedes date of birth.
+14,P1013,policy_term_years,ZERO_POLICY_TERM,high,Policy term must be greater than zero.
+15,P1014,sum_assured,ZERO_SUM_ASSURED,medium,Sum assured is zero; verify whether this is permitted.
+3,P1002,policy_id,DUPLICATE_POLICY_ID,high,Policy ID 'P1002' appears more than once.
+12,P1002,policy_id,DUPLICATE_POLICY_ID,high,Policy ID 'P1002' appears more than once.
