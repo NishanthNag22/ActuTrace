@@ -17,3 +17,6 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Generated analysis reports
+reports/analysis/
