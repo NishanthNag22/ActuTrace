@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.app.analysis_workflow import run_actutrace_analysis
-
+from backend.app.valuation.priority_comparator import compare_priority_methods
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -149,3 +149,23 @@ def download_report(report_name: str):
         media_type="text/csv",
         filename=report_name,
     )
+
+
+@app.get("/priority-comparison")
+def get_priority_comparison():
+    # Controlled synthetic example: occurrence frequency and impact
+    # are deliberately different so the ranking methods can be compared.
+    synthetic_defects = [
+        {"defect_type": "Missing dates", "impact": -100},
+        {"defect_type": "Missing dates", "impact": -100},
+        {"defect_type": "Missing dates", "impact": -100},
+        {"defect_type": "Invalid status", "impact": -300},
+        {"defect_type": "Incorrect sum assured", "impact": -5000},
+    ]
+
+    result = compare_priority_methods(synthetic_defects)
+    result["data_basis"] = (
+        "Controlled synthetic example; not measured impacts from "
+        "the validation findings report."
+    )
+    return result

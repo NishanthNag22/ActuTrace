@@ -67,3 +67,15 @@ def test_analysis_rejects_invalid_materiality_threshold():
     )
 
     assert response.status_code == 422
+
+
+def test_priority_comparison_endpoint():
+    response = client.get("/priority-comparison")
+
+    assert response.status_code == 200
+
+    result = response.json()
+    assert result["defect_type_count"] == 3
+    assert result["ranking_differs"] is True
+    assert len(result["results"]) == 3
+    assert "synthetic" in result["data_basis"].lower()

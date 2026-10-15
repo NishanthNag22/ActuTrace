@@ -48,16 +48,35 @@ function money(value: number) {
   }).format(value);
 }
 
+
+type PriorityComparison = {
+  defect_type_count: number;
+  spearman_rank_correlation: number | null;
+  ranking_differs: boolean;
+  data_basis: string;
+  results: {
+    defect_type: string;
+    occurrence_count: number;
+    total_absolute_impact: number;
+    count_rank: number;
+    impact_rank: number;
+  }[];
+  interpretation: string;
+};
+
 function App() {
   const [data, setData] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [comparison, setComparison] = useState<PriorityComparison | null>(null);
+
 
   async function runAnalysis() {
     setLoading(true);
     setError("");
 
     try {
+      // Run the main policy validation and valuation analysis.
       const response = await fetch(`${API_URL}/analysis`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,6 +97,20 @@ function App() {
       }
 
       setData(result);
+
+      // Fetch the separate count-versus-impact comparison.
+      const comparisonResponse = await fetch(
+        `${API_URL}/priority-comparison`,
+      );
+
+      if (!comparisonResponse.ok) {
+        throw new Error("Priority comparison could not be loaded.");
+      }
+
+      const comparisonResult: PriorityComparison =
+        await comparisonResponse.json();
+
+      setComparison(comparisonResult);
     } catch (error) {
       setError(
         error instanceof Error
@@ -88,6 +121,7 @@ function App() {
       setLoading(false);
     }
   }
+
 
   return (
     <main className="dashboard">
@@ -234,7 +268,67 @@ function App() {
               </table>
             </div>
           </section>
+          {comparison && (
+            <section className="panel">
+              <p className="eyebrow">ACTUTRACE DIFFERENTIATOR</p>
+              <h2>Count vs financial-impact priority</h2>
 
+              <p className="panel-description">
+                Compare defect frequency with the total absolute estimated
+                impact for each category in a controlled synthetic example.
+              </p>
+
+              <div className="comparison-summary">
+                <div>
+                  <span>Spearman rank correlation</span>
+                  <strong>
+                    {comparison.spearman_rank_correlation === null
+                      ? "Not available"
+                      : comparison.spearman_rank_correlation.toFixed(2)}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>Do the rankings differ?</span>
+                  <strong>{comparison.ranking_differs ? "Yes" : "No"}</strong>
+                </div>
+              </div>
+
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Defect category</th>
+                      <th>Occurrences</th>
+                      <th>Count rank</th>
+                      <th>Total absolute impact</th>
+                      <th>Impact rank</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {comparison.results.map((item) => (
+                      <tr key={item.defect_type}>
+                        <td>{item.defect_type}</td>
+                        <td>{item.occurrence_count}</td>
+                        <td>#{item.count_rank}</td>
+                        <td>{money(item.total_absolute_impact)}</td>
+                        <td className="impact-value">
+                          #{item.impact_rank}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <p className="panel-description">
+                {comparison.interpretation}
+              </p>
+
+              <p className="helper-text">{comparison.data_basis}</p>
+            </section>
+          )}
           <section className="two-column">
             <article className="panel">
               <p className="eyebrow">PORTFOLIO CHANGE</p>

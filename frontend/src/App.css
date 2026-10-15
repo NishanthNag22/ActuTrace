@@ -402,3 +402,36 @@ tbody tr:last-child td {
     align-items: flex-start;
   }
 }
+
+.comparison-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 22px 0;
+}
+
+.comparison-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  background: #f5f8f5;
+  border: 1px solid #e3e9e4;
+  border-radius: 10px;
+}
+
+.comparison-summary span {
+  color: #69766e;
+  font-size: 12px;
+}
+
+.comparison-summary strong {
+  color: #1c4435;
+  font-size: 26px;
+}
+
+@media (max-width: 600px) {
+  .comparison-summary {
+    grid-template-columns: 1fr;
+  }
+}
