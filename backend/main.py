@@ -1,11 +1,14 @@
 
 from pathlib import Path
+from unittest import result
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.app.analysis_workflow import run_actutrace_analysis
 
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 # Locate the project root, regardless of the terminal's current directory.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -29,6 +32,13 @@ app = FastAPI(
     version="0.2.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
+)
 
 class AnalysisRequest(BaseModel):
     claim_probability: float = Field(default=0.02, gt=0, le=1)
@@ -50,6 +60,15 @@ def home():
 def health_check():
     return {"status": "healthy"}
 
+import csv
+
+
+def read_csv_report(path: Path) -> list[dict]:
+    if not path.is_file():
+        return []
+
+    with path.open("r", encoding="utf-8-sig", newline="") as csv_file:
+        return list(csv.DictReader(csv_file))
 
 @app.post("/analysis")
 def run_analysis(request: AnalysisRequest):
@@ -85,6 +104,13 @@ def run_analysis(request: AnalysisRequest):
                 request.materiality_threshold_percent
             ),
         )
+        result["validation_findings"] = read_csv_report(
+        OUTPUT_DIRECTORY / "validation_findings.csv"
+        )
+        result["valuation_impacts"] = read_csv_report(
+        OUTPUT_DIRECTORY / "valuation_impacts.csv"
+        )
+
         return result
 
     except (ValueError, FileNotFoundError) as error:
@@ -92,3 +118,34 @@ def run_analysis(request: AnalysisRequest):
             status_code=400,
             detail=str(error),
         ) from error
+
+@app.get("/reports/{report_name}")
+def download_report(report_name: str):
+    allowed_reports = {
+        "validation_findings.csv": (
+            OUTPUT_DIRECTORY / "validation_findings.csv"
+        ),
+        "valuation_impacts.csv": (
+            OUTPUT_DIRECTORY / "valuation_impacts.csv"
+        ),
+    }
+
+    report_path = allowed_reports.get(report_name)
+
+    if report_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Report not found.",
+        )
+
+    if not report_path.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail="Run an analysis before downloading this report.",
+        )
+
+    return FileResponse(
+        path=report_path,
+        media_type="text/csv",
+        filename=report_name,
+    )
