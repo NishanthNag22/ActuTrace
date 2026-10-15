@@ -1,4 +1,3 @@
-
 from pathlib import Path
 from unittest import result
 
@@ -14,20 +13,15 @@ from fastapi.responses import FileResponse
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 POLICY_FILE = PROJECT_ROOT / "data" / "synthetic" / "policies.csv"
-CLEAN_BASELINE_FILE = (
-    PROJECT_ROOT / "data" / "synthetic" / "clean_policies.csv"
-)
-SCENARIO_FILE = (
-    PROJECT_ROOT / "data" / "synthetic" / "defect_scenarios.json"
-)
+CLEAN_BASELINE_FILE = PROJECT_ROOT / "data" / "synthetic" / "clean_policies.csv"
+SCENARIO_FILE = PROJECT_ROOT / "data" / "synthetic" / "defect_scenarios.json"
 OUTPUT_DIRECTORY = PROJECT_ROOT / "reports" / "analysis"
 
 
 app = FastAPI(
     title="ActuTrace API",
     description=(
-        "Life-insurance data quality validation and "
-        "valuation-impact analysis."
+        "Life-insurance data quality validation and " "valuation-impact analysis."
     ),
     version="0.2.0",
 )
@@ -40,11 +34,10 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
+
 class AnalysisRequest(BaseModel):
     claim_probability: float = Field(default=0.02, gt=0, le=1)
-    materiality_threshold_percent: float = Field(
-        default=5.0, gt=0, le=100
-    )
+    materiality_threshold_percent: float = Field(default=5.0, gt=0, le=100)
 
 
 @app.get("/")
@@ -60,6 +53,7 @@ def home():
 def health_check():
     return {"status": "healthy"}
 
+
 import csv
 
 
@@ -69,6 +63,7 @@ def read_csv_report(path: Path) -> list[dict]:
 
     with path.open("r", encoding="utf-8-sig", newline="") as csv_file:
         return list(csv.DictReader(csv_file))
+
 
 @app.post("/analysis")
 def run_analysis(request: AnalysisRequest):
@@ -100,15 +95,13 @@ def run_analysis(request: AnalysisRequest):
             scenario_json_path=SCENARIO_FILE,
             output_directory=OUTPUT_DIRECTORY,
             claim_probability=request.claim_probability,
-            materiality_threshold_percent=(
-                request.materiality_threshold_percent
-            ),
+            materiality_threshold_percent=(request.materiality_threshold_percent),
         )
         result["validation_findings"] = read_csv_report(
-        OUTPUT_DIRECTORY / "validation_findings.csv"
+            OUTPUT_DIRECTORY / "validation_findings.csv"
         )
         result["valuation_impacts"] = read_csv_report(
-        OUTPUT_DIRECTORY / "valuation_impacts.csv"
+            OUTPUT_DIRECTORY / "valuation_impacts.csv"
         )
 
         return result
@@ -119,15 +112,12 @@ def run_analysis(request: AnalysisRequest):
             detail=str(error),
         ) from error
 
+
 @app.get("/reports/{report_name}")
 def download_report(report_name: str):
     allowed_reports = {
-        "validation_findings.csv": (
-            OUTPUT_DIRECTORY / "validation_findings.csv"
-        ),
-        "valuation_impacts.csv": (
-            OUTPUT_DIRECTORY / "valuation_impacts.csv"
-        ),
+        "validation_findings.csv": (OUTPUT_DIRECTORY / "validation_findings.csv"),
+        "valuation_impacts.csv": (OUTPUT_DIRECTORY / "valuation_impacts.csv"),
     }
 
     report_path = allowed_reports.get(report_name)
@@ -169,3 +159,53 @@ def get_priority_comparison():
         "the validation findings report."
     )
     return result
+
+
+@app.get("/measured-priority")
+def get_measured_priority():
+    """Rank the actual controlled valuation experiment by measured impact."""
+    from pathlib import Path
+    import csv
+
+    report_path = Path("reports/analysis/valuation_impacts.csv")
+    
+    if not report_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Run the analysis before requesting measured priorities.",
+        )
+
+    with report_path.open("r", newline="", encoding="utf-8") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+
+    results = []
+    for row in rows:
+        try:
+            impact = float(row["impact"])
+        except (KeyError, ValueError) as exc:
+            raise HTTPException(
+                status_code=500,
+                detail="The valuation impact report has an invalid format.",
+            ) from exc
+
+        results.append(
+            {
+                "defect_id": row.get("defect_id", ""),
+                "policy_id": row.get("policy_id", ""),
+                "impact": impact,
+                "absolute_impact": abs(impact),
+            }
+        )
+
+    results.sort(key=lambda item: item["absolute_impact"], reverse=True)
+
+    for rank, item in enumerate(results, start=1):
+        item["rank"] = rank
+
+    return {
+        "data_basis": (
+            "Measured outputs from the controlled synthetic valuation "
+            "experiment; not production actuarial estimates."
+        ),
+        "results": results,
+    }
