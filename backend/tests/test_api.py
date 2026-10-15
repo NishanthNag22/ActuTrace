@@ -79,3 +79,68 @@ def test_priority_comparison_endpoint():
     assert result["ranking_differs"] is True
     assert len(result["results"]) == 3
     assert "synthetic" in result["data_basis"].lower()
+
+
+def test_measured_priority_endpoint(monkeypatch, tmp_path):
+    report_path = tmp_path / "valuation_impacts.csv"
+    report_path.write_text(
+        "defect_id,policy_id,impact\n"
+        "D001,P1001,-2000\n"
+        "D002,P1002,-4000\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        main,
+        "OUTPUT_DIRECTORY",
+        tmp_path,
+    )
+
+    response = client.get("/measured-priority")
+
+    assert response.status_code == 200
+    result = response.json()
+    assert len(result["results"]) == 2
+    assert result["results"][0]["defect_id"] == "D002"
+    assert result["results"][0]["absolute_impact"] == 4000
+    assert result["results"][0]["rank"] == 1
+    assert "controlled synthetic valuation experiment" in (
+        result["data_basis"]
+    )
+
+
+def test_measured_priority_missing_report_returns_404(
+    monkeypatch,
+    tmp_path,
+):
+    monkeypatch.setattr(
+        main,
+        "OUTPUT_DIRECTORY",
+        tmp_path,
+    )
+
+    response = client.get("/measured-priority")
+
+    assert response.status_code == 404
+
+
+def test_measured_priority_malformed_report_returns_500(
+    monkeypatch,
+    tmp_path,
+):
+    report_path = tmp_path / "valuation_impacts.csv"
+    report_path.write_text(
+        "defect_id,policy_id\nD001,P1001\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        main,
+        "OUTPUT_DIRECTORY",
+        tmp_path,
+    )
+
+    response = client.get("/measured-priority")
+
+    assert response.status_code == 500
+    assert "invalid format" in response.json()["detail"].lower()

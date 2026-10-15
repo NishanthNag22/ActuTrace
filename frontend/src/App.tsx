@@ -64,12 +64,23 @@ type PriorityComparison = {
   interpretation: string;
 };
 
+type MeasuredPriority = {
+  data_basis: string;
+  results: {
+    defect_id: string;
+    policy_id: string;
+    impact: number;
+    absolute_impact: number;
+    rank: number;
+  }[];
+};
 function App() {
   const [data, setData] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [comparison, setComparison] = useState<PriorityComparison | null>(null);
-
+  const [measuredPriority, setMeasuredPriority] =
+    useState<MeasuredPriority | null>(null);
 
   async function runAnalysis() {
     setLoading(true);
@@ -111,6 +122,19 @@ function App() {
         await comparisonResponse.json();
 
       setComparison(comparisonResult);
+      const measuredResponse = await fetch(
+        `${API_URL}/measured-priority`,
+      );
+
+      if (!measuredResponse.ok) {
+        throw new Error("Measured valuation priorities could not be loaded.");
+      }
+
+      const measuredResult: MeasuredPriority =
+        await measuredResponse.json();
+
+      setMeasuredPriority(measuredResult);
+
     } catch (error) {
       setError(
         error instanceof Error
@@ -327,6 +351,45 @@ function App() {
               </p>
 
               <p className="helper-text">{comparison.data_basis}</p>
+            </section>
+          )}
+          {measuredPriority && (
+            <section className="panel">
+              <p className="eyebrow">CONTROLLED VALUATION EXPERIMENT</p>
+              <h2>Measured valuation priorities</h2>
+              <p className="panel-description">
+                Defects are ranked by absolute simulated impact from the
+                controlled valuation experiment.
+              </p>
+
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Defect</th>
+                      <th>Policy</th>
+                      <th>Signed impact</th>
+                      <th>Absolute impact</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {measuredPriority.results.map((item) => (
+                      <tr key={item.defect_id}>
+                        <td>#{item.rank}</td>
+                        <td>{item.defect_id}</td>
+                        <td>{item.policy_id}</td>
+                        <td className="impact-value">
+                          {money(item.impact)}
+                        </td>
+                        <td>{money(item.absolute_impact)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <p className="helper-text">{measuredPriority.data_basis}</p>
             </section>
           )}
           <section className="two-column">

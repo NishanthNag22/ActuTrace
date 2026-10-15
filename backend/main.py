@@ -1,5 +1,4 @@
 from pathlib import Path
-from unittest import result
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -164,11 +163,7 @@ def get_priority_comparison():
 @app.get("/measured-priority")
 def get_measured_priority():
     """Rank the actual controlled valuation experiment by measured impact."""
-    from pathlib import Path
-    import csv
-
-    report_path = Path("reports/analysis/valuation_impacts.csv")
-    
+    report_path = OUTPUT_DIRECTORY / "valuation_impacts.csv"
     if not report_path.exists():
         raise HTTPException(
             status_code=404,
