@@ -5,6 +5,9 @@ from pydantic import BaseModel, Field
 
 from backend.app.analysis_workflow import run_actutrace_analysis
 from backend.app.valuation.priority_comparator import compare_priority_methods
+from backend.app.valuation.tool_suite import (
+    compare_model_outputs, simulate_pricing, project_liability,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -145,6 +148,45 @@ def download_report(report_name: str):
         media_type=media_type,
         filename=report_name,
     )
+
+
+
+class ModelMonitorRequest(BaseModel):
+    baseline: dict[str, float]
+    candidate: dict[str, float]
+    materiality_percent: float = Field(default=5.0, ge=0, le=100)
+
+class PricingScenarioRequest(BaseModel):
+    sum_assured: float = Field(ge=0)
+    claim_probability: float = Field(ge=0, le=1)
+    expense_load_percent: float = Field(default=10.0, ge=0, le=500)
+    risk_load_percent: float = Field(default=5.0, ge=0, le=500)
+
+class LiabilityProjectionRequest(BaseModel):
+    starting_amount: float = Field(ge=0)
+    annual_growth_percent: float = Field(default=4.0, ge=-100, le=100)
+    years: int = Field(default=10, ge=1, le=100)
+
+@app.post("/tools/model-monitor")
+def model_monitor(request: ModelMonitorRequest):
+    try:
+        return compare_model_outputs(request.baseline, request.candidate, request.materiality_percent)
+    except (ValueError, TypeError) as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+@app.post("/tools/pricing-simulator")
+def pricing_simulator(request: PricingScenarioRequest):
+    try:
+        return simulate_pricing(request.sum_assured, request.claim_probability, request.expense_load_percent, request.risk_load_percent)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+@app.post("/tools/liability-projection")
+def liability_projection(request: LiabilityProjectionRequest):
+    try:
+        return project_liability(request.starting_amount, request.annual_growth_percent, request.years)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @app.get("/priority-comparison")

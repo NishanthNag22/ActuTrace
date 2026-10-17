@@ -435,3 +435,17 @@ tbody tr:last-child td {
     grid-template-columns: 1fr;
   }
 }
+
+/* Additional ActuTrace tools */
+.tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.25rem; }
+.tool-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; min-width: 0; }
+.tool-card h3 { margin-top: 0; }
+.tool-card label { display: grid; gap: .35rem; margin: .75rem 0; font-size: .9rem; }
+.tool-card input, .tool-card textarea { width: 100%; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 7px; padding: .6rem; font: inherit; }
+.tool-card button { border: 0; border-radius: 7px; padding: .7rem 1rem; cursor: pointer; font: inherit; font-weight: 600; }
+.tool-card button:disabled { opacity: .6; cursor: wait; }
+.tool-link { display: block; padding: .7rem 0; color: inherit; text-decoration: underline; }
+.tool-result { margin-top: 1rem; border-radius: 10px; padding: 1rem; background: #f8fafc; overflow: auto; }
+.tool-result pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.tool-error { color: #b91c1c; }
+@media (max-width: 760px) { .tool-grid { grid-template-columns: 1fr; } }

@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import "./App.css";
+import ActuarialTools from "./ActuarialTools";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -459,6 +460,8 @@ function App() {
               </table>
             </div>
           </section>
+
+          <ActuarialTools />
 
           <p className="disclaimer">
             ActuTrace uses synthetic data and a simplified expected-claim-cost
