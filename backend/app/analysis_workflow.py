@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+from backend.app.analysis_report_exporter import export_excel, export_pdf
 from backend.app.validation.policy_validator import validate_policies
 from backend.app.validation.report_exporter import export_findings
 from backend.app.valuation.experiment_runner import run_scenario_file
@@ -114,9 +115,16 @@ def run_actutrace_analysis(
     }
 
     summary_path = output_dir / "analysis_summary.json"
+    summary["reports"] = {
+        "summary_json": str(summary_path),
+        "validation_csv": str(findings_path),
+        "valuation_csv": str(impacts_path),
+        "excel": str(output_dir / "analysis_report.xlsx"),
+        "pdf": str(output_dir / "analysis_report.pdf"),
+    }
     with summary_path.open("w", encoding="utf-8") as json_file:
         json.dump(summary, json_file, indent=2)
-
+    export_excel(summary, [dict(item) for item in findings], [dict(item) for item in valuation["ranked_defects"]], output_dir / "analysis_report.xlsx")
+    export_pdf(summary, [dict(item) for item in findings], [dict(item) for item in valuation["ranked_defects"]], output_dir / "analysis_report.pdf")
     summary["summary_path"] = str(summary_path)
-
     return summary

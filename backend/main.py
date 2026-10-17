@@ -121,6 +121,8 @@ def download_report(report_name: str):
         "validation_findings.csv": (OUTPUT_DIRECTORY / "validation_findings.csv"),
         "valuation_impacts.csv": (OUTPUT_DIRECTORY / "valuation_impacts.csv"),
         "analysis_summary.json": (OUTPUT_DIRECTORY / "analysis_summary.json"),
+        "analysis_report.xlsx": (OUTPUT_DIRECTORY / "analysis_report.xlsx"),
+        "analysis_report.pdf": (OUTPUT_DIRECTORY / "analysis_report.pdf"),
     }
 
     report_path = allowed_reports.get(report_name)
@@ -137,11 +139,13 @@ def download_report(report_name: str):
             detail="Run an analysis before downloading this report.",
         )
 
-    media_type = (
-        "application/json"
-        if report_name.endswith(".json")
-        else "text/csv"
-    )
+    media_types = {
+        ".json": "application/json",
+        ".csv": "text/csv",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".pdf": "application/pdf",
+    }
+    media_type = media_types.get(Path(report_name).suffix, "application/octet-stream")
 
     return FileResponse(
         path=report_path,
