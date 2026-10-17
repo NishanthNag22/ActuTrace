@@ -140,3 +140,57 @@ def test_workflow_rejects_missing_policy_columns(analysis_files):
             scenarios,
             reports,
         )
+
+def test_workflow_records_reproducibility_metadata(analysis_files):
+    policy_csv, clean_csv, scenarios, reports = analysis_files
+
+    result = run_actutrace_analysis(
+        policy_csv,
+        clean_csv,
+        scenarios,
+        reports,
+        claim_probability=0.03,
+        materiality_threshold_percent=7.0,
+    )
+
+    metadata = result["run_metadata"]
+
+    assert metadata["run_id"]
+    assert metadata["generated_at_utc"].endswith("+00:00")
+    assert metadata["configuration"]["claim_probability"] == 0.03
+    assert metadata["configuration"]["materiality_threshold_percent"] == 7.0
+
+    input_files = metadata["input_files"]
+
+    assert set(input_files) == {
+        "policy_csv",
+        "clean_baseline_csv",
+        "scenario_json",
+    }
+
+    for file_info in input_files.values():
+        assert len(file_info["sha256"]) == 64
+        assert file_info["filename"]
+
+
+def test_workflow_generates_unique_run_ids(analysis_files):
+    policy_csv, clean_csv, scenarios, reports = analysis_files
+
+    first_result = run_actutrace_analysis(
+        policy_csv,
+        clean_csv,
+        scenarios,
+        reports,
+    )
+
+    second_result = run_actutrace_analysis(
+        policy_csv,
+        clean_csv,
+        scenarios,
+        reports,
+    )
+
+    assert (
+        first_result["run_metadata"]["run_id"]
+        != second_result["run_metadata"]["run_id"]
+    )
