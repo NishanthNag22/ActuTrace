@@ -1,5 +1,8 @@
 
+import hashlib
 import json
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from backend.app.validation.policy_validator import validate_policies
@@ -26,6 +29,32 @@ def run_actutrace_analysis(
     """
     output_dir = Path(output_directory)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    input_paths = {
+        "policy_csv": Path(policy_csv_path),
+        "clean_baseline_csv": Path(clean_baseline_csv_path),
+        "scenario_json": Path(scenario_json_path),
+    }
+
+    input_hashes = {}
+    for label, path in input_paths.items():
+        if not path.is_file():
+            raise FileNotFoundError(f"Input file not found: {path}")
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        input_hashes[label] = {
+            "filename": path.name,
+            "sha256": digest,
+        }
+
+    run_metadata = {
+        "run_id": uuid.uuid4().hex,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "configuration": {
+            "claim_probability": claim_probability,
+            "materiality_threshold_percent": materiality_threshold_percent,
+        },
+        "input_files": input_hashes,
+    }
 
     # Stage 1: Find data-quality issues in the supplied policy dataset.
     findings = validate_policies(policy_csv_path)
@@ -56,6 +85,7 @@ def run_actutrace_analysis(
     # Stage 3: Produce a compact summary for dashboards and APIs.
     summary = {
         "application": "ActuTrace",
+        "run_metadata": run_metadata,
         "validation": {
             "finding_count": len(findings),
             "severity_counts": severity_counts,

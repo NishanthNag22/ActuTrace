@@ -22,7 +22,7 @@ app = FastAPI(
     description=(
         "Life-insurance data quality validation and " "valuation-impact analysis."
     ),
-    version="0.2.0",
+    version="1.0.0",
 )
 
 app.add_middleware(
@@ -117,6 +117,7 @@ def download_report(report_name: str):
     allowed_reports = {
         "validation_findings.csv": (OUTPUT_DIRECTORY / "validation_findings.csv"),
         "valuation_impacts.csv": (OUTPUT_DIRECTORY / "valuation_impacts.csv"),
+        "analysis_summary.json": (OUTPUT_DIRECTORY / "analysis_summary.json"),
     }
 
     report_path = allowed_reports.get(report_name)
@@ -133,9 +134,15 @@ def download_report(report_name: str):
             detail="Run an analysis before downloading this report.",
         )
 
+    media_type = (
+        "application/json"
+        if report_name.endswith(".json")
+        else "text/csv"
+    )
+
     return FileResponse(
         path=report_path,
-        media_type="text/csv",
+        media_type=media_type,
         filename=report_name,
     )
 
