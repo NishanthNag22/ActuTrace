@@ -1,33 +1,42 @@
 ﻿# ActuTrace
 
-ActuTrace is a prototype actuarial data-quality and valuation-impact analysis platform. It identifies policy-data defects, runs controlled valuation experiments, and prioritizes tested defects by their measured financial impact within a simplified valuation model.
+**An experimental actuarial workbench for policy-data quality, valuation-impact prioritisation, model-change review, and scenario exploration.**
 
-## Key Features
+ActuTrace explores a practical question: when policy data contains defects, which issues deserve attention first because of their potential financial impact? The platform combines policy-data validation with controlled synthetic valuation experiments and provides additional tools for comparing model outputs, exploring simplified pricing assumptions, projecting deterministic growth scenarios, and exporting reports.
 
-- **Policy data validation:** Detects missing fields, invalid values, and duplicate policy records.
-- **Controlled defect experiments:** Applies predefined defects to synthetic policy data and compares the results with a clean baseline.
-- **Valuation-impact analysis:** Measures changes in model output associated with tested defect scenarios.
-- **Impact-based prioritization:** Ranks tested scenarios by the absolute magnitude of their simulated financial impact while preserving the signed impact.
-- **Priority comparison:** Illustrates how count-based and impact-based rankings can differ.
-- **Dashboard:** Presents validation findings, valuation priorities, and analysis results.
-- **Report exports:** Generates CSV and JSON reports.
-- **Automated tests:** Tests validation, valuation workflows, ranking logic, and API error handling.
+> **Scope:** ActuTrace is a research and portfolio prototype. It uses synthetic data and simplified educational calculations; it is not a production actuarial valuation system. Outputs must not be used as actual insurer reserves, approved premiums, regulatory valuations, or financial advice.
 
-## Technology Stack
+## Features
 
-**Backend**
-- Python
-- FastAPI
-- Uvicorn
-- Pandas
-- Pytest
+### Core analysis
+- **Policy Data Quality Validator** — detects configured missing, invalid, and duplicate policy-record issues.
+- **Valuation Impact Analyzer** — runs configured defect scenarios against a clean synthetic baseline and measures changes in the implemented simplified model output.
+- **Impact-based prioritisation** — ranks tested scenarios by absolute simulated impact while retaining the direction of change.
+- **Materiality review** — flags tested scenarios against a configurable threshold.
+- **Count-versus-impact comparison** — demonstrates how frequency-based and impact-based rankings can differ. The illustrative comparison is explicitly separated from measured experiment outputs.
 
-**Frontend**
-- React
-- TypeScript
-- Vite
+### Additional workbench tools
+- **Model Change Monitor** — compares baseline and candidate values for matching metric names, calculates absolute and percentage changes, and flags metrics at the selected percentage threshold.
+- **Pricing Scenario Simulator** — calculates expected claim cost and adds configurable expense and risk loads using a simplified formula.
+- **Liability Growth Projection** — applies a constant annual growth assumption to produce a deterministic year-by-year schedule.
+- **Audit and Reporting** — exposes the generated analysis summary (JSON) and validation/valuation reports (CSV), where available.
 
-## Project Structure
+### Engineering
+- FastAPI backend and React + TypeScript frontend.
+- Pytest coverage for validation, valuation workflow, ranking, API behavior, and the additional tool calculations.
+- CSV and JSON outputs for inspection and reproducibility.
+
+## Technology stack
+
+| Layer | Technologies |
+|---|---|
+| Backend API | Python, FastAPI, Uvicorn, Pydantic |
+| Data processing | Pandas and Python data-processing utilities |
+| Frontend | React, TypeScript, Vite |
+| Tests | Pytest |
+| Version control | Git and GitHub |
+
+## Repository structure
 
 ```text
 ActuTrace/
@@ -41,38 +50,32 @@ ActuTrace/
 │   └── requirements.txt
 ├── data/
 │   └── synthetic/
-│       ├── clean_policies.csv
-│       ├── defect_scenarios.json
-│       └── policies.csv
 ├── frontend/
 │   ├── src/
 │   ├── package.json
 │   └── vite.config.ts
 ├── reports/
-│   └── validation_findings.csv
 └── README.md
 ```
 
-## Prerequisites
+## Requirements
 
-Install the following:
-
-- Python 3.14, or a compatible Python version supported by the dependencies
+- Python version compatible with the packages in `backend/requirements.txt`
 - Node.js and npm
 - Git
 
-## Setup
+## Run locally (Windows PowerShell)
 
-Run these commands from the project root.
+Run commands from the repository root unless stated otherwise.
 
-### 1. Create and activate the Python environment
+### 1. Create and activate a Python virtual environment
 
 ```powershell
-py -m venv backend\venv
-.\backend\venv\Scripts\Activate.ps1
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-If the virtual environment already exists, activate it without recreating it.
+If PowerShell blocks activation, use Command Prompt and run `.venv\Scripts\activate.bat`, or use your already working Python environment.
 
 ### 2. Install backend dependencies
 
@@ -82,104 +85,93 @@ python -m pip install -r backend\requirements.txt
 
 ### 3. Install frontend dependencies
 
-Open a second terminal at the project root and run:
+Open a second terminal:
 
 ```powershell
 cd frontend
 npm install
 ```
 
-## Run the Application
+### 4. Start the backend
 
-### Start the backend
-
-From the project root, with the backend virtual environment activated, run:
+From the repository root:
 
 ```powershell
 python -m uvicorn backend.main:app --reload
 ```
 
-The API is available at:
+API base URL: http://127.0.0.1:8000  
+Interactive API documentation: http://127.0.0.1:8000/docs  
+Health check: http://127.0.0.1:8000/health
 
-- API: http://127.0.0.1:8000
-- Interactive API documentation: http://127.0.0.1:8000/docs
+### 5. Start the frontend
 
-### Start the frontend
-
-In a separate terminal, run:
+In another terminal:
 
 ```powershell
 cd frontend
 npm run dev
 ```
 
-Open the local URL printed by Vite. Keep both servers running while using the dashboard.
+Open the local URL printed by Vite. Keep both servers running while using the application.
 
-## Run Tests and Build
+## Test and build
 
-Run backend tests from the project root:
+From the repository root, run the backend tests:
 
 ```powershell
 python -m pytest backend\tests -v
 ```
 
-Build the frontend for production:
+Build the frontend:
 
 ```powershell
 cd frontend
 npm run build
 ```
 
-Run the frontend linter:
+Optional frontend lint:
 
 ```powershell
 npm run lint
 ```
 
-## How Valuation-Impact Prioritization Works
+## How the valuation-impact experiment works
 
-1. Load synthetic policy data and predefined defect scenarios.
-2. Run the clean baseline through the simplified valuation model.
-3. Apply a selected defect scenario and run the model again.
-4. Compare the scenario result with the baseline.
-5. Record the measured change in model output.
-6. Rank tested scenarios by the absolute magnitude of their measured impact.
+1. Load the configured synthetic policy dataset, clean baseline, and defect scenarios.
+2. Run the clean baseline through the implemented simplified valuation model.
+3. Apply a configured defect scenario and run the model again.
+4. Compare the scenario output with the baseline and record the signed change.
+5. Rank the tested scenarios by absolute impact so increases and decreases are compared by magnitude.
+6. Compare the result with an illustrative count-based ranking and flag tested scenarios against the selected materiality threshold.
 
-The signed impact indicates the direction of change. Absolute impact is used to rank scenarios by magnitude, whether the model output increases or decreases.
+A validation finding is **not automatically assigned a financial impact**. Financial impact is measured only for the scenarios that are actually run through the implemented model. Effects from multiple defects may interact, so isolated scenario impacts should not be assumed to add up to a combined result.
 
-## Interpreting Results
+## Additional tool calculations
 
-ActuTrace distinguishes between two types of prioritization output.
+- **Model Change Monitor:** percentage change is measured relative to the absolute baseline value. A non-zero candidate against a zero baseline is represented by the tool as a 100% change; interpret this edge case cautiously.
+- **Pricing Scenario Simulator:** expected claim cost = sum assured × claim probability. Expense and risk loads are calculated as percentages of that expected claim cost, then added to it. This is a deliberately simplified illustration, not a complete premium calculation.
+- **Liability Growth Projection:** each year multiplies the prior amount by (1 + annual growth rate). It does not model cash flows, mortality, discounting, policy duration, or actuarial assumptions.
 
-**Measured valuation priorities**
+## Limitations and responsible interpretation
 
-These results come from running configured defect scenarios through the implemented valuation experiment. They depend on the synthetic data and model assumptions.
+- Uses synthetic policy data and simplified deterministic assumptions.
+- Does not represent an insurer's production valuation, reserves, approved pricing, or regulatory reporting.
+- The tested defect library is not exhaustive; a finding's financial impact is not known unless an appropriate scenario and model are used.
+- Results depend on the implemented model, configured inputs, and selected scenarios.
+- Isolated defect impacts may not add up to the combined impact when defects interact.
+- Production use would require actuarial review, validated assumptions, secure data handling, stronger audit controls, and evaluation on representative data.
+- The model-change tool compares numeric outputs; it does not establish that the underlying model or assumptions are correct.
 
-**Illustrative priority comparison**
+## Future work
 
-This controlled example demonstrates why ranking defects by count can differ from ranking them by financial impact. It is not the measured ranking of all validation findings.
-
-A validation finding is not automatically assigned a financial impact. Quantifying that impact requires an appropriate model or a defensible mapping.
-
-## Current Limitations
-
-- ActuTrace is a research and portfolio prototype, not a production actuarial valuation system.
-- It uses synthetic policy data and a simplified valuation model.
-- Measured impacts apply only to the scenarios tested and the assumptions configured in the model.
-- Outputs are not actual insurer reserves, regulatory valuations, or financial advice.
-- Individual defect effects may interact, so isolated impacts do not necessarily add up to the combined impact.
-- The current experiment does not establish that every possible policy-data defect has been detected or financially quantified.
-- Production use would require actuarial review, validated assumptions, stronger data governance, and testing with representative real-world data.
-
-## Future Improvements
-
-- Expand the library of realistic defect scenarios.
-- Add materiality thresholds based on a clearly defined valuation measure.
-- Quantify interactions between defects and report any unexplained residual.
-- Evaluate prioritization against ground-truth financial impacts across larger test datasets.
-- Improve reproducibility, audit trails, and report metadata.
-- Validate the approach with practising actuaries and representative data.
+- Expand realistic defect classes and scenario coverage.
+- Evaluate count-based versus impact-based prioritisation against known ground truth on larger controlled datasets.
+- Strengthen interaction analysis and explain any residual between isolated and combined effects.
+- Add more complete run/version metadata and reproducible experiment configuration.
+- Improve automated end-to-end tests and dashboard error/empty states.
+- Seek review from practising actuaries before making claims about real-world valuation usefulness.
 
 ## Disclaimer
 
-ActuTrace is an experimental software project intended for demonstration and research. Its outputs must not be used as a substitute for professional actuarial judgment or production valuation controls.
+ActuTrace is an experimental software project for learning, demonstration, and research. It is not a substitute for professional actuarial judgement, insurer controls, or regulatory valuation systems.
