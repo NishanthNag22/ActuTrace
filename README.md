@@ -19,12 +19,12 @@ ActuTrace explores a practical question: when policy data contains defects, whic
 - **Model Change Monitor** — compares baseline and candidate values for matching metric names, calculates absolute and percentage changes, and flags metrics at the selected percentage threshold.
 - **Pricing Scenario Simulator** — calculates expected claim cost and adds configurable expense and risk loads using a simplified formula.
 - **Liability Growth Projection** — applies a constant annual growth assumption to produce a deterministic year-by-year schedule.
-- **Audit and Reporting** — exposes the generated analysis summary (JSON) and validation/valuation reports (CSV), where available.
+- **Audit and Reporting** — exports the analysis summary (JSON), validation findings (CSV), valuation impacts (CSV), and consolidated Excel and PDF analysis reports.
 
 ### Engineering
 - FastAPI backend and React + TypeScript frontend.
 - Pytest coverage for validation, valuation workflow, ranking, API behavior, and the additional tool calculations.
-- CSV and JSON outputs for inspection and reproducibility.
+- CSV, JSON, Excel (.xlsx), and PDF outputs for inspection, reporting, and reproducibility.
 
 ## Technology stack
 
@@ -44,7 +44,8 @@ ActuTrace/
 │   ├── app/
 │   │   ├── validation/
 │   │   ├── valuation/
-│   │   └── analysis_workflow.py
+│   │   ├── analysis_workflow.py
+│   │   └── analysis_report_exporter.py
 │   ├── tests/
 │   ├── main.py
 │   └── requirements.txt
@@ -136,6 +137,20 @@ Optional frontend lint:
 npm run lint
 ```
 
+## Generated reports
+
+After a successful analysis, the configured output directory (eports/analysis/ in the standard setup) contains:
+
+| File | Purpose |
+|---|---|
+| nalysis_summary.json | Run metadata, input hashes, configuration, and summary metrics |
+| alidation_findings.csv | Detected policy-data quality findings |
+| aluation_impacts.csv | Ranked simulated defect impacts |
+| nalysis_report.xlsx | Workbook with Summary, Validation Findings, and Valuation Impacts sheets |
+| nalysis_report.pdf | Printable summary with findings and ranked valuation impacts |
+
+These reports describe the configured synthetic experiment. The Excel and PDF exports do not turn simulated results into production actuarial estimates.
+
 ## How the valuation-impact experiment works
 
 1. Load the configured synthetic policy dataset, clean baseline, and defect scenarios.
@@ -175,3 +190,4 @@ A validation finding is **not automatically assigned a financial impact**. Finan
 ## Disclaimer
 
 ActuTrace is an experimental software project for learning, demonstration, and research. It is not a substitute for professional actuarial judgement, insurer controls, or regulatory valuation systems.
+
