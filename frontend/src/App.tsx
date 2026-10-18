@@ -1,9 +1,27 @@
-
 import { useState } from "react";
 import "./App.css";
 import ActuarialTools from "./ActuarialTools";
 
 const API_URL = "http://127.0.0.1:8000";
+
+type Page =
+  | "overview"
+  | "valuation"
+  | "quality"
+  | "model-monitor"
+  | "pricing"
+  | "projection"
+  | "reports";
+
+const navigationItems: { id: Page; label: string; icon: string }[] = [
+  { id: "overview", label: "Overview", icon: "⌂" },
+  { id: "valuation", label: "Valuation Impact", icon: "↗" },
+  { id: "quality", label: "Data Quality", icon: "◈" },
+  { id: "model-monitor", label: "Model Change Monitor", icon: "⇄" },
+  { id: "pricing", label: "Pricing Simulator", icon: "₹" },
+  { id: "projection", label: "Liability Projection", icon: "⌁" },
+  { id: "reports", label: "Reports & Audit", icon: "▤" },
+];
 
 type Finding = {
   row_number: string;
@@ -82,6 +100,7 @@ function App() {
   const [comparison, setComparison] = useState<PriorityComparison | null>(null);
   const [measuredPriority, setMeasuredPriority] =
     useState<MeasuredPriority | null>(null);
+  const [activePage, setActivePage] = useState<Page>("overview");
 
   async function runAnalysis() {
     setLoading(true);
@@ -147,222 +166,134 @@ function App() {
     }
   }
 
+  function navigateTo(page: Page) {
+    setActivePage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   return (
-    <main className="dashboard">
-      <header className="topbar">
-        <a className="brand" href="/">
+    <main className="dashboard dashboard-with-sidebar" data-active-page={activePage}>
+      <aside className="app-sidebar">
+        <a className="sidebar-brand" href="#overview-section" onClick={() => navigateTo("overview")}>
           <span className="brand-icon">A</span>
-          ActuTrace
+          <span><strong>ActuTrace</strong><small>ACTUARIAL WORKSPACE</small></span>
         </a>
-        <span className="environment">
-          <span className="online-dot" />
-          Local analysis environment
-        </span>
-      </header>
+        <p className="sidebar-label">WORKSPACE</p>
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          {navigationItems.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              className={`sidebar-link ${activePage === item.id ? "active" : ""}`}
+              onClick={() => navigateTo(item.id)}
+            >
+              <span className="sidebar-icon" aria-hidden="true">{item.icon}</span>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-footer"><span className="online-dot" /> Local environment</div>
+      </aside>
+      <div className="dashboard-main">
+        <header className="topbar">
+          <a className="brand" href="/">
+            <span className="brand-icon">A</span>
+            ActuTrace
+          </a>
+          <span className="environment">
+            <span className="online-dot" />
+            Local analysis environment
+          </span>
+        </header>
 
-      <section className="hero">
-        <p className="eyebrow">ACTUARIAL DATA QUALITY PLATFORM</p>
-        <h1>Know which data defects matter financially.</h1>
-        <p className="hero-description">
-          Validate life-insurance policy records, measure simulated
-          valuation impacts, and prioritize defects by estimated impact.
-        </p>
-        <button
-          className="primary-button"
-          onClick={runAnalysis}
-          disabled={loading}
-        >
-          {loading ? "Analysing..." : "Run analysis →"}
-        </button>
-        <p className="helper-text">
-          Demonstration using synthetic policy data.
-        </p>
-      </section>
-
-      {error && (
-        <div className="error-box" role="alert">
-          <strong>Analysis could not be completed</strong>
-          <p>{error}</p>
-          <p>
-            Check that the FastAPI backend is running at
-            {" "}http://127.0.0.1:8000.
+        {activePage === "overview" && <section className="hero" id="overview-section">
+          <p className="eyebrow">ACTUARIAL DATA QUALITY PLATFORM</p>
+          <h1>Know which data defects matter financially.</h1>
+          <p className="hero-description">
+            Validate life-insurance policy records, measure simulated
+            valuation impacts, and prioritize defects by estimated impact.
           </p>
-        </div>
-      )}
-
-      {!data && !error && (
-        <section className="empty-state">
-          <div className="empty-icon">↗</div>
-          <h2>Your analysis workspace</h2>
-          <p>
-            Run an analysis to view validation findings, impact rankings,
-            and report downloads.
+          <button
+            className="primary-button"
+            onClick={runAnalysis}
+            disabled={loading}
+          >
+            {loading ? "Analysing..." : "Run analysis →"}
+          </button>
+          <p className="helper-text">
+            Demonstration using synthetic policy data.
           </p>
-        </section>
-      )}
+        </section>}
 
-      {data && (
-        <>
-          <section className="section-heading">
-            <div>
-              <p className="eyebrow">RESULTS OVERVIEW</p>
-              <h2>Portfolio analysis</h2>
-            </div>
-            <span className="complete-badge">Analysis complete</span>
-          </section>
+        {activePage !== "overview" && <section className="workspace-title"><p className="eyebrow">ACTUTRACE WORKSPACE</p><h1>{navigationItems.find((item) => item.id === activePage)?.label}</h1><p>Work with the selected analysis area without leaving the workspace.</p></section>}
 
-          <section className="metric-grid">
-            <article className="metric-card">
-              <p>Validation findings</p>
-              <strong>{data.validation.finding_count}</strong>
-              <span>
-                {data.validation.severity_counts.high ?? 0} high severity
-              </span>
-            </article>
-            <article className="metric-card">
-              <p>Simulated defects</p>
-              <strong>{data.valuation.defect_count}</strong>
-              <span>Controlled experiment</span>
-            </article>
-            <article className="metric-card">
-              <p>Material defects</p>
-              <strong>{data.valuation.material_defect_count}</strong>
-              <span>
-                Threshold: {data.valuation.materiality_threshold_percent}%
-              </span>
-            </article>
-            <article className="metric-card">
-              <p>Baseline expected cost</p>
-              <strong>{money(data.valuation.baseline_expected_cost)}</strong>
-              <span>Before simulated defects</span>
-            </article>
-          </section>
-
-          <section className="panel">
-            <p className="eyebrow">FINANCIAL PRIORITIZATION</p>
-            <h2>Valuation impact ranking</h2>
-            <p className="panel-description">
-              Each injected defect is measured against the clean synthetic
-              baseline. This simplified model is for demonstration, not
-              production actuarial valuation.
+        {error && (
+          <div className="error-box" role="alert">
+            <strong>Analysis could not be completed</strong>
+            <p>{error}</p>
+            <p>
+              Check that the FastAPI backend is running at
+              {" "}http://127.0.0.1:8000.
             </p>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Defect</th>
-                    <th>Policy</th>
-                    <th>Change in sum assured</th>
-                    <th>Estimated impact</th>
-                    <th>Materiality</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.valuation_impacts.map((item) => (
-                    <tr key={item.defect_id}>
-                      <td>#{item.rank}</td>
-                      <td>{item.defect_id}</td>
-                      <td>{item.policy_id}</td>
-                      <td>
-                        {money(
-                          Number(item.altered_value) -
-                          Number(item.original_value),
-                        )}
-                      </td>
-                      <td className="impact-value">
-                        {money(Number(item.impact))}
-                      </td>
-                      <td>
-                        <span
-                          className={
-                            item.is_material === "True"
-                              ? "pill material"
-                              : "pill non-material"
-                          }
-                        >
-                          {item.is_material === "True"
-                            ? "Material"
-                            : "Below threshold"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          </div>
+        )}
+
+        {!data && !error && activePage === "overview" && (
+          <section className="empty-state">
+            <div className="empty-icon">↗</div>
+            <h2>Your analysis workspace</h2>
+            <p>
+              Run an analysis to view validation findings, impact rankings,
+              and report downloads.
+            </p>
           </section>
-          {comparison && (
-            <section className="panel">
-              <p className="eyebrow">ACTUTRACE DIFFERENTIATOR</p>
-              <h2>Count vs financial-impact priority</h2>
+        )}
 
-              <p className="panel-description">
-                Compare defect frequency with the total absolute estimated
-                impact for each category in a controlled synthetic example.
-              </p>
-
-              <div className="comparison-summary">
-                <div>
-                  <span>Spearman rank correlation</span>
-                  <strong>
-                    {comparison.spearman_rank_correlation === null
-                      ? "Not available"
-                      : comparison.spearman_rank_correlation.toFixed(2)}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>Do the rankings differ?</span>
-                  <strong>{comparison.ranking_differs ? "Yes" : "No"}</strong>
-                </div>
+        {data && (
+          <>
+            <section className="section-heading" hidden={activePage !== "overview"}>
+              <div>
+                <p className="eyebrow">RESULTS OVERVIEW</p>
+                <h2>Portfolio analysis</h2>
               </div>
-
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Defect category</th>
-                      <th>Occurrences</th>
-                      <th>Count rank</th>
-                      <th>Total absolute impact</th>
-                      <th>Impact rank</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {comparison.results.map((item) => (
-                      <tr key={item.defect_type}>
-                        <td>{item.defect_type}</td>
-                        <td>{item.occurrence_count}</td>
-                        <td>#{item.count_rank}</td>
-                        <td>{money(item.total_absolute_impact)}</td>
-                        <td className="impact-value">
-                          #{item.impact_rank}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <p className="panel-description">
-                {comparison.interpretation}
-              </p>
-
-              <p className="helper-text">{comparison.data_basis}</p>
+              <span className="complete-badge">Analysis complete</span>
             </section>
-          )}
-          {measuredPriority && (
-            <section className="panel">
-              <p className="eyebrow">CONTROLLED VALUATION EXPERIMENT</p>
-              <h2>Measured valuation priorities</h2>
-              <p className="panel-description">
-                Defects are ranked by absolute simulated impact from the
-                controlled valuation experiment.
-              </p>
 
+            <section className="metric-grid" hidden={activePage !== "overview"}>
+              <article className="metric-card">
+                <p>Validation findings</p>
+                <strong>{data.validation.finding_count}</strong>
+                <span>
+                  {data.validation.severity_counts.high ?? 0} high severity
+                </span>
+              </article>
+              <article className="metric-card">
+                <p>Simulated defects</p>
+                <strong>{data.valuation.defect_count}</strong>
+                <span>Controlled experiment</span>
+              </article>
+              <article className="metric-card">
+                <p>Material defects</p>
+                <strong>{data.valuation.material_defect_count}</strong>
+                <span>
+                  Threshold: {data.valuation.materiality_threshold_percent}%
+                </span>
+              </article>
+              <article className="metric-card">
+                <p>Baseline expected cost</p>
+                <strong>{money(data.valuation.baseline_expected_cost)}</strong>
+                <span>Before simulated defects</span>
+              </article>
+            </section>
+
+            <section className="panel" hidden={activePage !== "valuation"}>
+              <p className="eyebrow">FINANCIAL PRIORITIZATION</p>
+              <h2>Valuation impact ranking</h2>
+              <p className="panel-description">
+                Each injected defect is measured against the clean synthetic
+                baseline. This simplified model is for demonstration, not
+                production actuarial valuation.
+              </p>
               <div className="table-wrap">
                 <table>
                   <thead>
@@ -370,31 +301,146 @@ function App() {
                       <th>Rank</th>
                       <th>Defect</th>
                       <th>Policy</th>
-                      <th>Signed impact</th>
-                      <th>Absolute impact</th>
+                      <th>Change in sum assured</th>
+                      <th>Estimated impact</th>
+                      <th>Materiality</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {measuredPriority.results.map((item) => (
+                    {data.valuation_impacts.map((item) => (
                       <tr key={item.defect_id}>
                         <td>#{item.rank}</td>
                         <td>{item.defect_id}</td>
                         <td>{item.policy_id}</td>
-                        <td className="impact-value">
-                          {money(item.impact)}
+                        <td>
+                          {money(
+                            Number(item.altered_value) -
+                            Number(item.original_value),
+                          )}
                         </td>
-                        <td>{money(item.absolute_impact)}</td>
+                        <td className="impact-value">
+                          {money(Number(item.impact))}
+                        </td>
+                        <td>
+                          <span
+                            className={
+                              item.is_material === "True"
+                                ? "pill material"
+                                : "pill non-material"
+                            }
+                          >
+                            {item.is_material === "True"
+                              ? "Material"
+                              : "Below threshold"}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-
-              <p className="helper-text">{measuredPriority.data_basis}</p>
             </section>
-          )}
-          <section className="two-column">
-            <article className="panel">
+            {comparison && (
+              <section className="panel" hidden={activePage !== "valuation"}>
+                <p className="eyebrow">ACTUTRACE DIFFERENTIATOR</p>
+                <h2>Count vs financial-impact priority</h2>
+
+                <p className="panel-description">
+                  Compare defect frequency with the total absolute estimated
+                  impact for each category in a controlled synthetic example.
+                </p>
+
+                <div className="comparison-summary">
+                  <div>
+                    <span>Spearman rank correlation</span>
+                    <strong>
+                      {comparison.spearman_rank_correlation === null
+                        ? "Not available"
+                        : comparison.spearman_rank_correlation.toFixed(2)}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Do the rankings differ?</span>
+                    <strong>{comparison.ranking_differs ? "Yes" : "No"}</strong>
+                  </div>
+                </div>
+
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Defect category</th>
+                        <th>Occurrences</th>
+                        <th>Count rank</th>
+                        <th>Total absolute impact</th>
+                        <th>Impact rank</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {comparison.results.map((item) => (
+                        <tr key={item.defect_type}>
+                          <td>{item.defect_type}</td>
+                          <td>{item.occurrence_count}</td>
+                          <td>#{item.count_rank}</td>
+                          <td>{money(item.total_absolute_impact)}</td>
+                          <td className="impact-value">
+                            #{item.impact_rank}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="panel-description">
+                  {comparison.interpretation}
+                </p>
+
+                <p className="helper-text">{comparison.data_basis}</p>
+              </section>
+            )}
+            {measuredPriority && (
+              <section className="panel" hidden={activePage !== "valuation"}>
+                <p className="eyebrow">CONTROLLED VALUATION EXPERIMENT</p>
+                <h2>Measured valuation priorities</h2>
+                <p className="panel-description">
+                  Defects are ranked by absolute simulated impact from the
+                  controlled valuation experiment.
+                </p>
+
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Rank</th>
+                        <th>Defect</th>
+                        <th>Policy</th>
+                        <th>Signed impact</th>
+                        <th>Absolute impact</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {measuredPriority.results.map((item) => (
+                        <tr key={item.defect_id}>
+                          <td>#{item.rank}</td>
+                          <td>{item.defect_id}</td>
+                          <td>{item.policy_id}</td>
+                          <td className="impact-value">
+                            {money(item.impact)}
+                          </td>
+                          <td>{money(item.absolute_impact)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="helper-text">{measuredPriority.data_basis}</p>
+              </section>
+            )}
+            <section className="panel" hidden={activePage !== "overview"}>
               <p className="eyebrow">PORTFOLIO CHANGE</p>
               <h2>Combined estimated impact</h2>
               <p className="large-number">
@@ -404,9 +450,9 @@ function App() {
                 Interaction residual:{" "}
                 {money(data.valuation.interaction_residual)}
               </p>
-            </article>
+            </section>
 
-            <article className="panel">
+            <section className="panel" hidden={activePage !== "reports"}>
               <p className="eyebrow">REPORT EXPORTS</p>
               <h2>Analysis reports</h2>
               <div className="download-list">
@@ -417,59 +463,59 @@ function App() {
                   Valuation impacts <span>Download CSV ↓</span>
                 </a>
               </div>
-            </article>
-          </section>
+            </section>
 
-          <section className="panel">
-            <p className="eyebrow">DATA QUALITY</p>
-            <h2>Validation findings</h2>
-            <p className="panel-description">
-              These findings describe detected data-quality issues. They do
-              not automatically imply a measured valuation impact.
-            </p>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Row</th>
-                    <th>Policy</th>
-                    <th>Field</th>
-                    <th>Severity</th>
-                    <th>Finding</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.validation_findings.map((finding, index) => (
-                    <tr
-                      key={`${finding.policy_id}-${finding.field}-${index}`}
-                    >
-                      <td>{finding.row_number}</td>
-                      <td>{finding.policy_id || "—"}</td>
-                      <td>{finding.field}</td>
-                      <td>
-                        <span
-                          className={`pill ${finding.severity.toLowerCase()}`}
-                        >
-                          {finding.severity}
-                        </span>
-                      </td>
-                      <td>{finding.message}</td>
+            <section className="panel" hidden={activePage !== "quality"}>
+              <p className="eyebrow">DATA QUALITY</p>
+              <h2>Validation findings</h2>
+              <p className="panel-description">
+                These findings describe detected data-quality issues. They do
+                not automatically imply a measured valuation impact.
+              </p>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>Policy</th>
+                      <th>Field</th>
+                      <th>Severity</th>
+                      <th>Finding</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                  </thead>
+                  <tbody>
+                    {data.validation_findings.map((finding, index) => (
+                      <tr
+                        key={`${finding.policy_id}-${finding.field}-${index}`}
+                      >
+                        <td>{finding.row_number}</td>
+                        <td>{finding.policy_id || "—"}</td>
+                        <td>{finding.field}</td>
+                        <td>
+                          <span
+                            className={`pill ${finding.severity.toLowerCase()}`}
+                          >
+                            {finding.severity}
+                          </span>
+                        </td>
+                        <td>{finding.message}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
 
-          <ActuarialTools />
+            <ActuarialTools activePage={activePage} />
 
-          <p className="disclaimer">
-            ActuTrace uses synthetic data and a simplified expected-claim-cost
-            model. Its results are illustrative, not production reserve
-            estimates or financial advice.
-          </p>
-        </>
-      )}
+            <p className="disclaimer" hidden={activePage !== "overview"}>
+              ActuTrace uses synthetic data and a simplified expected-claim-cost
+              model. Its results are illustrative, not production reserve
+              estimates or financial advice.
+            </p>
+          </>
+        )}
+      </div>
     </main>
   );
 }
